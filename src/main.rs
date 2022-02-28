@@ -8,20 +8,29 @@ fn get_tree(conn: &mut swayipc::Connection) -> Result<swayipc::Node, swayipc::Er
     Ok(tree)
 }
 
-fn analyze_node (tree: &swayipc::Node) {
+fn analyze_node(tree: &swayipc::Node) {
     use swayipc::NodeType::*;
-    for node in &tree.nodes{
+    for node in &tree.nodes {
         match node.node_type {
             Root => println!("Root node."),
-            Workspace => match &node.name {
-                Some(n) => println!("Workspace node {}.", n),
-                None => println!("Unnamed workspace node."),
+            Workspace => {
+                match &node.name {
+                    Some(n) => println!("|-- Workspace '{}'.", n),
+                    None => println!("|-- Unnamed workspace node."),
+                }
+                analyze_node(&node);
+            }
+            Con => match &node.name {
+                Some(n) => println!("|--- Container '{} - {}'.",&node.id, n),
+                None => println!("|--- Unnamed container '{}'.", &node.id)
             },
-            Con => println!("Container node."),
-            Output => match &node.name {
-                Some(n) => println!("Output node {}.", n),
-                None => println!("Output node."),
-            },
+            Output => {
+                match &node.name {
+                    Some(n) => println!("|- Output '{}'.", n),
+                    None => println!("|- Output node."),
+                }
+                analyze_node(&node);
+            }
             Dockarea => println!("Dock area node."),
             FloatingCon => println!("Floating container node."),
             _ => println!("Unknows node type."),
@@ -30,7 +39,6 @@ fn analyze_node (tree: &swayipc::Node) {
 }
 
 fn main() -> Result<(), swayipc::Error> {
-
     let mut conn = swayipc::Connection::new()?;
     let active_ws = active_workspace_numbers(&mut conn)?;
 
